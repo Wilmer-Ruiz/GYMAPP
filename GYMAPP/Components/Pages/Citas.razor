@@ -1,0 +1,93 @@
+﻿
+@page "/Citas"
+@using GYMAPP.Service
+@using Repositorio
+@using Entidades
+@using Microsoft.AspNetCore.Components.Forms
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+@inject IlistaServicio listaServicio
+@inject IListasRepositorio ListaRepositorio
+
+
+
+<h3>Agendar Cita</h3>
+
+<EditForm Model="@nuevaCita" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+
+    <div class="form-group">
+        <label>Fecha y Hora:</label>
+        <InputDate @bind-Value="nuevaCita.FechaHora" class="form-control" />
+        <ValidationMessage For="@(() => nuevaCita.FechaHora)" />
+    </div>
+
+    <div class="form-group">
+        <label>Cliente:</label>
+        <InputSelect @bind-Value="nuevaCita.ClienteID" class="form-control">
+            @foreach (var cliente in clientes)
+            {
+                <option value="@cliente.ClienteID">@cliente.Nombre @cliente.Apellido</option>
+            }
+        </InputSelect>
+    </div>
+
+    <div class="form-group">
+        <label>Entrenador:</label>
+        <InputSelect @bind-Value="nuevaCita.TrabajadorID" class="form-control">
+            @foreach (var trabajador in trabajadores)
+            {
+                <option value="@trabajador.TrabajadorID">@trabajador.Nombre @trabajador.Apellido</option>
+            }
+        </InputSelect>
+    </div>
+
+    <div class="form-group">
+        <label>Notas:</label>
+        <InputTextArea @bind-Value="nuevaCita.Notas" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Agendar</button>
+</EditForm>
+
+@code {
+    private Cita nuevaCita = new Cita();
+    private List<Cliente> clientes = new();
+    private List<Trabajador> trabajadores = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        clientes = (await ListaRepositorio.GetAllClientes()).ToList();
+        trabajadores = (await ListaRepositorio.GetAllTrabajadores()).ToList();
+    }
+
+    // private async Task HandleValidSubmit()
+    // {
+    //     await listaServicio.AgendarCita(nuevaCita);
+    //     nuevaCita = new Cita();
+    // }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            var resultado = await ListaRepositorio.AddCita(nuevaCita);
+
+            if (resultado != null && resultado.Any())
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "¡Cita agendada correctamente!");
+                nuevaCita = new Cita() { FechaHora = DateTime.Now };
+                StateHasChanged();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Error al agendar la cita. Por favor, intente nuevamente.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+        }
+    }
+}
+
